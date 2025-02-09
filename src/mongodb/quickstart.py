@@ -1,13 +1,13 @@
 from pymongo import MongoClient
 
-uri = "mongodb://localhost:27017/"
+uri = 'mongodb://localhost:27017/'
 client = MongoClient(uri)
 
 try:
-    database = client.get_database("api")
-    movies = database.get_collection("nba")
+    database = client.get_database('api')
+    movies = database.get_collection('nba')
 
-    query = { "customer_id" : 1 }
+    query = {'customer_id': 1}
     movie = movies.find_one(query)
 
     print(movie)
@@ -15,4 +15,6 @@ try:
     client.close()
 
 except Exception as e:
-    raise Exception("Unnable to find the document due to the following error: ", e)
+    raise Exception(
+        'Unnable to find the document due to the following error: ', e
+    )
