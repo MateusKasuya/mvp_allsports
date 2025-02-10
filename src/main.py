@@ -6,8 +6,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from dotenv import dotenv_values
 
-from src.api_requests.nba_requests import request_nba_league_hierarchy
-from src.mongodb.insert import insert_to_mongodb
+from src.api_requests.nba_requests import (
+    request_nba_league_hierarchy,
+    request_nba_team_profile,
+)
+from src.mongodb.extract import query_mongodb
+from src.mongodb.load import load_to_mongodb
 
 settings = dotenv_values('.env')
 
@@ -20,21 +24,41 @@ features = {
     },
     'mongodb': {
         'uri': settings['MONGOURI'],
-        'database': 'api',
-        'collection': 'nba',
+        'database': 'nba',
+        'collection': ['league_hierarchy', 'team_profile'],
     },
 }
 
 if __name__ == '__main__':
-    teams = request_nba_league_hierarchy(
+    # league_hierarchy = request_nba_league_hierarchy(
+    #     access_level=features['api_request']['access_level'],
+    #     language_code=features['api_request']['language_code'],
+    #     format=features['api_request']['format'],
+    #     api_key=features['api_request']['api_key'],
+    # )
+    # load_to_mongodb(
+    #     uri=features['mongodb']['uri'],
+    #     database=features['mongodb']['database'],
+    #     collection=features['mongodb']['collection'][0],
+    #     json=league_hierarchy,
+    # )
+    teams = query_mongodb(
+        uri=features['mongodb']['uri'],
+        database=features['mongodb']['database'],
+        collection=features['mongodb']['collection'][0],
+        query={},
+    )
+    team_profile = request_nba_team_profile(
+        teams,
         access_level=features['api_request']['access_level'],
         language_code=features['api_request']['language_code'],
         format=features['api_request']['format'],
         api_key=features['api_request']['api_key'],
     )
-    insert_to_mongodb(
-        uri=features['mongodb']['uri'],
-        database=features['mongodb']['database'],
-        collection=features['mongodb']['collection'],
-        json=teams,
-    )
+    for team in team_profile:
+        load_to_mongodb(
+            uri=features['mongodb']['uri'],
+            database=features['mongodb']['database'],
+            collection=features['mongodb']['collection'][1],
+            json=team,
+        )

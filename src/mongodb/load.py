@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 
 
-def insert_to_mongodb(
+def load_to_mongodb(
     uri: str, database: str, collection: str, json: dict
 ) -> None:
 
