@@ -1,3 +1,5 @@
+import time
+
 import requests
 
 
@@ -42,5 +44,7 @@ def request_nba_team_profile(
         data = response.json()
 
         list_of_teams.append(data)
+
+        time.sleep(5)
 
     return list_of_teams
