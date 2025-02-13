@@ -58,9 +58,11 @@ def nba_requests_player_profile(
     api_key: str,
 ) -> list:
 
-    player_ids = [
-        player['id'] for team in teams for player in team.get('players', [])
-    ]
+    # player_ids = [
+    #     player['id'] for team in teams for player in team.get('players', [])
+    # ]
+
+    player_ids = teams
 
     list_of_players = []
 

@@ -83,4 +83,46 @@ if __name__ == '__main__':
     #         collection=features['mongodb']['collection'][2],
     #         json=player,
     #     )
-    pass
+
+    players_query = query_mongodb(
+        uri=features['mongodb']['uri'],
+        database=features['mongodb']['database'],
+        collection=features['mongodb']['collection'][2],
+        query={},
+    )
+    list_of_players_queried = [
+        player['id'] for player in players_query
+    ]
+    
+    all_players_query = query_mongodb(
+        uri=features['mongodb']['uri'],
+        database=features['mongodb']['database'],
+        collection=features['mongodb']['collection'][1],
+        query={},
+    )
+
+    player_ids = [
+        player['id'] for team in all_players_query for player in team.get('players', [])
+    ]
+    
+    list_to_ingest = []
+    for player in player_ids:
+        if player not in list_of_players_queried:
+            list_to_ingest.append(player)
+
+    player_profile = nba_requests_player_profile(
+        list_to_ingest,
+        access_level=features['api_request']['access_level'],
+        language_code=features['api_request']['language_code'],
+        format=features['api_request']['format'],
+        api_key=features['api_request']['api_key'],
+    )
+    for player in player_profile:
+        load_to_mongodb(
+            uri=features['mongodb']['uri'],
+            database=features['mongodb']['database'],
+            collection=features['mongodb']['collection'][2],
+            json=player,
+        )
+    
+    
