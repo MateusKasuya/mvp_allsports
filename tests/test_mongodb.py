@@ -7,9 +7,8 @@ import pytest
 from src.utils.mongodb import MongoDBProcess
 
 # Adiciona o diretório raiz ao sys.path
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-)
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
 
 
 @pytest.fixture
@@ -28,7 +27,7 @@ def test_insert_success(mock_mongo):
     mock_mongo.collection.insert_one.return_value = MagicMock()
 
     result = mock_mongo.to_nosql({'name': 'John Doe'})
-    assert result == 'Inserted to MongoDB sucessfully'
+    assert result == 'Inserted to MongoDB successfully'
 
 
 def test_insert_failure(mock_mongo):
