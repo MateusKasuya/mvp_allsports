@@ -2,7 +2,7 @@ import pytest
 import requests
 import requests_mock
 
-from utils.request_player_props import RequestOddsPlayerProps
+from src.utils.request_player_props import RequestOddsPlayerProps
 
 API_KEY = 'fake_api_key'
 ACCESS_LEVEL = 'trial'
