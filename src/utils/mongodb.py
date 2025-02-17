@@ -35,7 +35,7 @@ class MongoDBProcess:
         self.db = self.client[database]
         self.collection = self.db[collection]
 
-    def read_nosql(self, query: dict = {}):
+    def read_nosql(self, query: dict = {}) -> dict:
         """
         Lê documentos de uma coleção no MongoDB.
 
@@ -56,12 +56,12 @@ class MongoDBProcess:
             Se ocorrer um erro na consulta ao banco de dados.
         """
         try:
-            results = list(self.collection.find(query))
+            results = self.collection.find(query)
             return results
         except Exception as e:
             raise Exception(f'An error occurred: {str(e)}')
 
-    def to_nosql(self, json: dict):
+    def to_nosql(self, json: dict) -> None:
         """
         Insere um documento na coleção MongoDB.
 
@@ -87,10 +87,27 @@ class MongoDBProcess:
         except Exception as e:
             raise Exception(f'The following error occurred: {e}')
 
-    def close_client(self):
+    def close_client(self) -> None:
         """
         Fecha a conexão com o MongoDB.
 
         Libera os recursos ao fechar a conexão com o banco de dados.
         """
         self.client.close()
+
+    def check_if_exists(self, query: dict = {}) -> bool:
+        """
+        Verifica a existência de um registro no banco de dados NoSQL com base na consulta fornecida.
+
+        Este método utiliza o método `read_nosql` para executar uma consulta no banco de dados NoSQL.
+        Se a consulta retornar algum documento (ou seja, se o registro existir), o método retorna `True`.
+        Caso contrário, retorna `False`.
+
+        Args:
+            query (dict): Dicionário contendo os parâmetros da consulta para verificar a existência do registro.
+
+        Returns:
+            bool: `True` se o registro existir; `False` caso contrário.
+        """
+        cursor = self.read_nosql(query)
+        return next(cursor, None) is not None

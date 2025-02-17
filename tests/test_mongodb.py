@@ -64,3 +64,75 @@ def test_close_client(mock_mongo):
 
     mock_mongo.close_client()
     mock_mongo.client.close.assert_called_once()
+
+
+def test_check_if_exists_returns_true(mock_mongo):
+    """
+    Testa se o método check_if_exists retorna True quando um documento é encontrado.
+
+    Para isso, configura-se o método find_one da coleção para retornar um documento,
+    simulando que o registro existe.
+    """
+    # Simula que o registro existe
+    mock_mongo.collection.find_one.return_value = {
+        '_id': 1,
+        'name': 'John Doe',
+    }
+    result = mock_mongo.check_if_exists({'name': 'John Doe'})
+    assert result is True
+
+
+def test_check_if_exists_returns_false(mock_mongo):
+    """
+    Testa se o método check_if_exists retorna False quando nenhum documento é encontrado.
+
+    Para isso, configura-se o método find_one da coleção para retornar None,
+    simulando que o registro não existe.
+    """
+    # Simula que o registro não existe
+    mock_mongo.collection.find_one.return_value = None
+    result = mock_mongo.check_if_exists({'name': 'Inexistente'})
+    assert result is False
+
+
+@pytest.fixture
+def mongo_process():
+    """
+    Cria uma instância de MongoDBProcess sem chamar o __init__
+    para evitar a conexão real com o MongoDB.
+    """
+    return MongoDBProcess.__new__(MongoDBProcess)
+
+
+def test_check_if_exists_returns_true(monkeypatch, mongo_process):
+    """
+    Testa se o método check_if_exists retorna True quando um documento é encontrado.
+
+    Aqui, simulamos que o método read_nosql retorna um iterador com pelo menos
+    um documento, fazendo com que next() retorne o primeiro item.
+    """
+
+    def fake_read_nosql(query):
+        # Simula um cursor com um documento
+        return iter([{'_id': 1, 'name': 'Test'}])
+
+    monkeypatch.setattr(mongo_process, 'read_nosql', fake_read_nosql)
+    result = mongo_process.check_if_exists({'name': 'Test'})
+    assert result is True
+
+
+def test_check_if_exists_returns_false(monkeypatch, mongo_process):
+    """
+    Testa se o método check_if_exists retorna False quando nenhum documento é encontrado.
+
+    Aqui, simulamos que o método read_nosql retorna um iterador vazio, de forma que
+    next(cursor, None) retorne None.
+    """
+
+    def fake_read_nosql(query):
+        # Simula um cursor vazio
+        return iter([])
+
+    monkeypatch.setattr(mongo_process, 'read_nosql', fake_read_nosql)
+    result = mongo_process.check_if_exists({'name': 'Nonexistent'})
+    assert result is False
