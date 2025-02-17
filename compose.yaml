@@ -1,0 +1,52 @@
+version: '3.1'
+
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - mongo-compose-network
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    networks:
+      - mongo-compose-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  python-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - mongo-compose-network
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  mongo-compose-network:
+    driver: bridge
