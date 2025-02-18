@@ -1,113 +1,76 @@
+from typing import List
+
 from pymongo import MongoClient
 
 
 class MongoDBProcess:
     """
     Classe responsável pela interação com o banco de dados MongoDB.
-
-    A classe permite realizar operações básicas como inserção de documentos
-    e leitura de dados em uma coleção do MongoDB.
-
-    Attributes:
-    ----------
-    client : MongoClient
-        Cliente de conexão com o MongoDB.
-    db : Database
-        Banco de dados selecionado no MongoDB.
-    collection : Collection
-        Coleção dentro do banco de dados onde as operações serão realizadas.
+    Permite operações básicas como inserção, leitura e verificação de documentos.
     """
 
-    def __init__(self, uri: str, database: str, collection: str):
+    def __init__(self, uri: str):
         """
-        Inicializa a classe MongoDBProcess.
+        Inicializa a conexão com o MongoDB.
 
-        Parameters:
-        ----------
-        uri : str
-            URI de conexão do MongoDB.
-        database : str
-            Nome do banco de dados.
-        collection : str
-            Nome da coleção dentro do banco de dados.
+        :param uri: str - URI de conexão do MongoDB
         """
         self.client = MongoClient(uri)
-        self.db = self.client[database]
-        self.collection = self.db[collection]
 
-    def read_nosql(self, query: dict = {}) -> dict:
+    def read_nosql(
+        self, database_name: str, collection_name: str, query: dict = {}
+    ) -> List[dict]:
         """
         Lê documentos de uma coleção no MongoDB.
 
-        Parameters:
-        ----------
-        query : dict, opcional
-            O critério de consulta para a busca dos documentos.
-            O padrão é um dicionário vazio, retornando todos os documentos.
-
-        Returns:
-        -------
-        list
-            Lista com os documentos encontrados.
-
-        Raises:
-        ------
-        Exception
-            Se ocorrer um erro na consulta ao banco de dados.
+        :param database_name: str - Nome do banco de dados.
+        :param collection_name: str - Nome da coleção.
+        :param query: dict - Critério de consulta (opcional, padrão é vazio).
+        :return: List[dict] - Lista de documentos encontrados.
         """
         try:
-            results = self.collection.find(query)
-            return results
+            collection = self.client[database_name][collection_name]
+            return list(collection.find(query))
         except Exception as e:
-            raise Exception(f'An error occurred: {str(e)}')
+            raise RuntimeError(f'Erro ao ler do MongoDB: {e}')
 
-    def to_nosql(self, json: dict) -> None:
+    def to_nosql(
+        self, database_name: str, collection_name: str, document: dict
+    ) -> str:
         """
-        Insere um documento na coleção MongoDB.
+        Insere um documento no MongoDB.
 
-        Parameters:
-        ----------
-        json : dict
-            O documento a ser inserido na coleção.
-
-        Returns:
-        -------
-        str
-            Mensagem de sucesso se a inserção for bem-sucedida.
-
-        Raises:
-        ------
-        Exception
-            Se ocorrer um erro ao tentar inserir o documento.
+        :param database_name: str - Nome do banco de dados.
+        :param collection_name: str - Nome da coleção.
+        :param document: dict - Documento a ser inserido.
+        :return: str - Mensagem de sucesso.
         """
         try:
-            result = self.collection.insert_one(json)
-            if result:
-                return 'Inserted to MongoDB successfully'
+            collection = self.client[database_name][collection_name]
+            result = collection.insert_one(document)
+            return f'Documento inserido com sucesso, ID: {result.inserted_id}'
         except Exception as e:
-            raise Exception(f'The following error occurred: {e}')
+            raise RuntimeError(f'Erro ao inserir no MongoDB: {e}')
+
+    def check_if_exists(
+        self, database_name: str, collection_name: str, query: dict = {}
+    ) -> bool:
+        """
+        Verifica a existência de documentos em uma coleção do MongoDB.
+
+        :param database_name: str - Nome do banco de dados.
+        :param collection_name: str - Nome da coleção.
+        :param query: dict - Filtro para a verificação (opcional, padrão é vazio).
+        :return: bool - True se existir pelo menos um documento, False caso contrário.
+        """
+        try:
+            collection = self.client[database_name][collection_name]
+            return (
+                collection.count_documents(query) > 0
+            )  # Verifica a existência de documentos corretamente
+        except Exception as e:
+            raise RuntimeError(f'Erro ao verificar existência no MongoDB: {e}')
 
     def close_client(self) -> None:
-        """
-        Fecha a conexão com o MongoDB.
-
-        Libera os recursos ao fechar a conexão com o banco de dados.
-        """
+        """Fecha a conexão com o MongoDB."""
         self.client.close()
-
-    def check_if_exists(self, query: dict = {}) -> bool:
-        """
-        Verifica a existência de um registro no banco de dados NoSQL com base na consulta fornecida.
-
-        Este método utiliza o método `read_nosql` para executar uma consulta no banco de dados NoSQL.
-        Se a consulta retornar algum documento (ou seja, se o registro existir), o método retorna `True`.
-        Caso contrário, retorna `False`.
-
-        Args:
-            query (dict): Dicionário contendo os parâmetros da consulta para verificar a existência do registro.
-
-        Returns:
-            bool: `True` se o registro existir; `False` caso contrário.
-        """
-        cursor = self.read_nosql(query)
-        return next(cursor, None) is not None
