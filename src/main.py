@@ -15,7 +15,6 @@ uri = os.getenv('MONGOURI')
 api_key = os.getenv('APIKEY')
 
 if __name__ == '__main__':
-
     player_props = PlayerPropsPipeline(
         uri=uri,
         access_level='trial',
@@ -23,22 +22,12 @@ if __name__ == '__main__':
     )
 
     try:
-
-        print("Verificando se 'sports' já contém dados...")
-        existing_sports = player_props.check_if_exists(
-            database_name='oddsplayerprops', collection_name='sports'
+        print('Executando sports_pipeline()...')
+        player_props.sports_pipeline(
+            database='oddsplayerprops', collection='sports'
         )
-        print(f'Documentos encontrados: {existing_sports}')
 
-        if existing_sports == 0:
-            print('Executando sports_pipeline()')
-            player_props.sports_pipeline(
-                database='oddsplayerprops', collection='sports'
-            )
-        else:
-            print('Pulando sports_pipeline(), já existem dados.')
-
-        print('Executando sports_competition_pipeline()')
+        print('Executando sports_competition_pipeline()...')
         player_props.sports_competition_pipeline(
             database='oddsplayerprops',
             collection_input='sports',
@@ -46,9 +35,16 @@ if __name__ == '__main__':
             collection_output='sports_competition',
         )
 
+        print('Executando competition_schedules_pipeline()...')
+        player_props.competition_schedules_pipeline(
+            database='oddsplayerprops',
+            collection_input='sports_competition',
+            competition_name='NBA',
+            collection_output='competition_schedules',
+        )
+
     except Exception as e:
         print(f'Erro durante a execução do pipeline: {e}')
 
     finally:
-
         player_props.close_client()
