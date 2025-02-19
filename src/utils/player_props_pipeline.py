@@ -23,12 +23,78 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
         Obtém e armazena esportes no MongoDB.
 
         :param database: str - Nome do banco de dados.
-        :param collection: str - Nome da coleção.
+        :param collection: str - Nome da coleção onde os dados serão armazenados.
         """
         if not self.check_if_exists(database, collection):
             sports = self.get_sports()
             if sports:
                 self.to_nosql(database, collection, sports)
+
+    def _fetch_and_store(
+        self,
+        database: str,
+        collection_input: str,
+        key: str,
+        value: str,
+        collection_output: str,
+        fetch_function,
+    ):
+        if self.check_if_exists(database, collection_output):
+            print(
+                f"[INFO] A coleção '{collection_output}' já existe no banco '{database}', pulando processamento."
+            )
+            return
+
+        if not self.check_if_exists(database, collection_input):
+            print(
+                f"[WARNING] A coleção '{collection_input}' não foi encontrada no banco '{database}'. Verifique se os dados foram inseridos corretamente."
+            )
+            return
+
+        print(
+            f"[INFO] A coleção '{collection_input}' existe no banco '{database}'. Iniciando leitura dos dados..."
+        )
+        documents = self.read_nosql(database, collection_input)
+        print(
+            f"[INFO] Dados lidos da coleção '{collection_input}': {len(documents)} registros encontrados."
+        )
+
+        item_id = None
+        for document in documents:
+            items = document.get(key, [])
+            print(f"[DEBUG] Verificando '{key}' no documento: {document}")
+            for item in items:
+                print(f"[DEBUG] Comparando '{item['name']}' com '{value}'...")
+                if item['name'] == value:
+                    item_id = item['id']
+                    print(f'[SUCCESS] ID encontrado: {item_id}')
+                    break
+            if item_id:
+                break
+
+        if item_id is not None:
+            print(f"[INFO] Buscando dados na API para o ID '{item_id}'...")
+            fetched_data = fetch_function(item_id)
+            print(
+                f"[INFO] Dados obtidos da API: {fetched_data if fetched_data else 'Nenhum dado retornado.'}"
+            )
+
+            if fetched_data:
+                print(
+                    f"[INFO] Inserindo dados na coleção '{collection_output}'..."
+                )
+                self.to_nosql(database, collection_output, fetched_data)
+                print(
+                    f"[SUCCESS] Dados inseridos na coleção '{collection_output}' com sucesso!"
+                )
+            else:
+                print(
+                    f"[WARNING] Nenhum dado foi retornado da API para o ID '{item_id}'. Nenhuma inserção realizada."
+                )
+        else:
+            print(
+                f"[ERROR] Nenhum ID correspondente encontrado para '{value}' na coleção '{collection_input}'. Verifique os dados disponíveis."
+            )
 
     def sports_competition_pipeline(
         self,
@@ -38,40 +104,42 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
         collection_output: str,
     ):
         """
-        Obtém e armazena competições de um esporte específico.
+        Obtém e armazena competições de um esporte específico no MongoDB.
 
         :param database: str - Nome do banco de dados.
-        :param collection_input: str - Nome da coleção de esportes.
+        :param collection_input: str - Nome da coleção contendo os esportes.
         :param sport_name: str - Nome do esporte desejado.
-        :param collection_output: str - Nome da coleção de competições.
+        :param collection_output: str - Nome da coleção onde os dados de competições serão armazenados.
         """
-        if self.check_if_exists(database, collection_input):
-            print(f'A coleção {collection_input} existe no banco {database}')
-            output = self.read_nosql(database, collection_input)
-            print(f'Dados lidos da coleção {collection_input}: {output}')
+        self._fetch_and_store(
+            database,
+            collection_input,
+            'sports',
+            sport_name,
+            collection_output,
+            self.get_sports_competition,
+        )
 
-            sport_id = None
+    def competition_schedules_pipeline(
+        self,
+        database: str,
+        collection_input: str,
+        competition_name: str,
+        collection_output: str,
+    ):
+        """
+        Obtém e armazena os cronogramas de uma competição específica no MongoDB.
 
-            for document in output:
-                print(f'Documento: {document}')
-                for sport in document['sports']:
-                    print(f"Verificando esporte: {sport['name']}")
-                    if sport['name'] == sport_name:
-                        sport_id = sport['id']
-                        break
-                if sport_id:
-                    break
-            print(f'Sport ID encontrado: {sport_id}')
-
-            if sport_id:
-                sports_competition = self.get_sports_competition(sport_id)
-                print(
-                    f'Competições encontradas para {sport_name}: {sports_competition}'
-                )
-                if sports_competition:
-                    self.to_nosql(
-                        database, collection_output, sports_competition
-                    )
-                    print(
-                        f'Dados inseridos na coleção {collection_output}: {sports_competition}'
-                    )
+        :param database: str - Nome do banco de dados.
+        :param collection_input: str - Nome da coleção contendo as competições.
+        :param competition_name: str - Nome da competição desejada.
+        :param collection_output: str - Nome da coleção onde os dados do cronograma serão armazenados.
+        """
+        self._fetch_and_store(
+            database,
+            collection_input,
+            'competitions',
+            competition_name,
+            collection_output,
+            self.get_competition_schedules,
+        )
