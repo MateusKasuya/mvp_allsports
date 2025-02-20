@@ -1,6 +1,10 @@
 import os
 import sys
 
+print('[DEBUG] Iniciando execução do main.py...', file=sys.stdout)
+sys.stdout.flush()
+
+
 from dotenv import load_dotenv
 
 # Adiciona o diretório 'src' ao sys.path
@@ -42,6 +46,13 @@ if __name__ == '__main__':
             competition_name='NBA',
             collection_output='competition_schedules',
         )
+
+        # print('Executando sport_event_player_props_pipeline()...')
+        # player_props.sport_event_player_props_pipeline(
+        #     database="oddsplayerprops",
+        #     collection_input="competition_schedules",
+        #     collection_output="sport_event_player_props"
+        # )
 
     except Exception as e:
         print(f'Erro durante a execução do pipeline: {e}')

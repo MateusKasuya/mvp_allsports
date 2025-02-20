@@ -13,8 +13,8 @@ def mock_mongo():
         return MongoDBProcess('mongodb://fake-uri')
 
 
-def test_insert_success(mock_mongo):
-    """Testa se a inserção ocorre corretamente"""
+def test_insert_one_success(mock_mongo):
+    """Testa se a inserção de um único documento ocorre corretamente"""
     mock_mongo.client['test_db'][
         'test_collection'
     ].insert_one.return_value = MagicMock()
@@ -24,8 +24,21 @@ def test_insert_success(mock_mongo):
     assert 'Documento inserido com sucesso' in result
 
 
+def test_insert_many_success(mock_mongo):
+    """Testa se a inserção de múltiplos documentos ocorre corretamente"""
+    mock_mongo.client['test_db'][
+        'test_collection'
+    ].insert_many.return_value = MagicMock()
+    result = mock_mongo.to_nosql(
+        'test_db',
+        'test_collection',
+        [{'name': 'John Doe'}, {'name': 'Jane Doe'}],
+    )
+    assert 'Documento inserido com sucesso' in result
+
+
 def test_insert_failure(mock_mongo):
-    """Testa erro ao inserir um documento inválido"""
+    """Testa erro ao inserir um único documento inválido"""
     mock_mongo.client['test_db'][
         'test_collection'
     ].insert_one.side_effect = Exception('Insert error')
@@ -34,6 +47,21 @@ def test_insert_failure(mock_mongo):
     ):
         mock_mongo.to_nosql(
             'test_db', 'test_collection', {'invalid_field': None}
+        )
+
+
+def test_insert_many_failure(mock_mongo):
+    """Testa erro ao inserir múltiplos documentos inválidos"""
+    mock_mongo.client['test_db'][
+        'test_collection'
+    ].insert_many.side_effect = Exception('Insert error')
+    with pytest.raises(
+        RuntimeError, match='Erro ao inserir no MongoDB: Insert error'
+    ):
+        mock_mongo.to_nosql(
+            'test_db',
+            'test_collection',
+            [{'invalid_field': None}, {'invalid_field': None}],
         )
 
 
