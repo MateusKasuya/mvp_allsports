@@ -10,4 +10,4 @@ WORKDIR /src
 RUN poetry install --no-root
 
 # Start the app using serve command
-CMD ["poetry", "run", "python", "src/main.py"]
+CMD ["poetry", "run", "python", "-u", "src/main.py"]

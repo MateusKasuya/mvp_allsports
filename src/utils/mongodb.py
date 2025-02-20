@@ -47,8 +47,11 @@ class MongoDBProcess:
         """
         try:
             collection = self.client[database_name][collection_name]
-            result = collection.insert_one(document)
-            return f'Documento inserido com sucesso, ID: {result.inserted_id}'
+            if not isinstance(document, list):
+                result = collection.insert_one(document)
+            else:
+                result = collection.insert_many(document)
+            return f'Documento inserido com sucesso'
         except Exception as e:
             raise RuntimeError(f'Erro ao inserir no MongoDB: {e}')
 

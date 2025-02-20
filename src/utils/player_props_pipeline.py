@@ -1,3 +1,5 @@
+import time
+
 from src.utils.mongodb import MongoDBProcess
 from src.utils.request_player_props import RequestOddsPlayerProps
 
@@ -20,7 +22,7 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
 
     def sports_pipeline(self, database: str, collection: str):
         """
-        Obtém e armazena esportes no MongoDB.
+        Obtém e armazena esportes no MongoDB, caso a coleção ainda não exista.
 
         :param database: str - Nome do banco de dados.
         :param collection: str - Nome da coleção onde os dados serão armazenados.
@@ -39,61 +41,87 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
         collection_output: str,
         fetch_function,
     ):
-        if self.check_if_exists(database, collection_output):
+        print(
+            f'[DEBUG] Iniciando _fetch_and_store para {collection_output}...'
+        )
+
+        if collection_output == 'sports_competition' and self.check_if_exists(
+            database, collection_output
+        ):
             print(
-                f"[INFO] A coleção '{collection_output}' já existe no banco '{database}', pulando processamento."
+                f"[INFO] A coleção '{collection_output}' já existe. Pulando processamento."
             )
             return
 
         if not self.check_if_exists(database, collection_input):
             print(
-                f"[WARNING] A coleção '{collection_input}' não foi encontrada no banco '{database}'. Verifique se os dados foram inseridos corretamente."
+                f"[WARNING] A coleção '{collection_input}' não foi encontrada no banco '{database}'."
             )
             return
 
-        print(
-            f"[INFO] A coleção '{collection_input}' existe no banco '{database}'. Iniciando leitura dos dados..."
-        )
         documents = self.read_nosql(database, collection_input)
         print(
-            f"[INFO] Dados lidos da coleção '{collection_input}': {len(documents)} registros encontrados."
+            f"[INFO] {len(documents)} registros encontrados na coleção '{collection_input}'."
         )
 
-        item_id = None
-        for document in documents:
-            items = document.get(key, [])
-            print(f"[DEBUG] Verificando '{key}' no documento: {document}")
-            for item in items:
-                print(f"[DEBUG] Comparando '{item['name']}' com '{value}'...")
-                if item['name'] == value:
-                    item_id = item['id']
-                    print(f'[SUCCESS] ID encontrado: {item_id}')
-                    break
-            if item_id:
-                break
+        item_ids = (
+            [] if collection_output == 'sport_event_player_props' else None
+        )
 
-        if item_id is not None:
-            print(f"[INFO] Buscando dados na API para o ID '{item_id}'...")
-            fetched_data = fetch_function(item_id)
-            print(
-                f"[INFO] Dados obtidos da API: {fetched_data if fetched_data else 'Nenhum dado retornado.'}"
-            )
+        for document in documents:
+            items = document.get(
+                key, []
+            )  # Aqui 'key' pode ser 'sports' ou 'competitions'
+
+            print(f'[DEBUG] Documento atual: {document}')
+
+            if not isinstance(items, list):
+                print(
+                    f"[ERROR] Esperado uma lista em '{key}', mas encontrado: {type(items)}"
+                )
+                continue
+
+            for item in items:
+                if not isinstance(item, dict):
+                    print(f'[ERROR] Estrutura inesperada no item: {item}')
+                    continue
+
+                if 'name' in item and item['name'] == value:
+                    item_ids = item['id']
+                    break
+
+            print(f'[DEBUG] IDs coletados: {item_ids}')
+
+        if item_ids:
+            print(f'[INFO] Buscando dados para {len(item_ids)} IDs...')
+
+            if isinstance(item_ids, list):
+                fetched_data = []
+                for event_id in item_ids:
+                    print(f'[DEBUG] Buscando dados para ID: {event_id}')
+                    try:
+                        data = fetch_function(event_id)
+                        fetched_data.append(data)
+                        time.sleep(5)
+                    except Exception as e:
+                        print(
+                            f'[ERROR] Erro ao buscar dados para {event_id}: {e}'
+                        )
+            else:
+                fetched_data = fetch_function(item_ids)
 
             if fetched_data:
-                print(
-                    f"[INFO] Inserindo dados na coleção '{collection_output}'..."
-                )
                 self.to_nosql(database, collection_output, fetched_data)
                 print(
                     f"[SUCCESS] Dados inseridos na coleção '{collection_output}' com sucesso!"
                 )
             else:
                 print(
-                    f"[WARNING] Nenhum dado foi retornado da API para o ID '{item_id}'. Nenhuma inserção realizada."
+                    f'[WARNING] Nenhum dado retornado da API para os IDs coletados.'
                 )
         else:
             print(
-                f"[ERROR] Nenhum ID correspondente encontrado para '{value}' na coleção '{collection_input}'. Verifique os dados disponíveis."
+                f"[ERROR] Nenhum ID correspondente encontrado para '{value}' na coleção '{collection_input}'."
             )
 
     def sports_competition_pipeline(
@@ -142,4 +170,22 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
             competition_name,
             collection_output,
             self.get_competition_schedules,
+        )
+
+    def sport_event_player_props_pipeline(
+        self, database: str, collection_input: str, collection_output: str
+    ):
+        """
+        Obtém e armazena informações de eventos esportivos de jogadores no MongoDB.
+        """
+        print(
+            f'[DEBUG] Chamando sport_event_player_props_pipeline com {database}, {collection_input}, {collection_output}'
+        )
+        self._fetch_and_store(
+            database,
+            collection_input,
+            'schedules',
+            None,
+            collection_output,
+            self.get_sport_event_player_props,
         )
