@@ -7,7 +7,7 @@ COPY . /src
 
 WORKDIR /src
 
-RUN poetry install --no-root
+RUN poetry install --only main --no-root
 
 # Start the app using serve command
 CMD ["poetry", "run", "python", "-u", "src/main.py"]
