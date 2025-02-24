@@ -11,11 +11,6 @@ dependencies = [
     "pymongo (>=4.11,<5.0)",
     "requests (>=2.32.3,<3.0.0)",
     "python-dotenv (>=1.0.1,<2.0.0)",
-    "blue (>=0.9.1,<0.10.0)",
-    "isort (>=6.0.0,<7.0.0)",
-    "taskipy (>=1.14.1,<2.0.0)",
-    "pytest (>=8.3.4,<9.0.0)",
-    "requests-mock (>=1.12.1,<2.0.0)",
 ]
 
 
@@ -32,3 +27,11 @@ known_third_party= []
 format = "isort . && blue ."
 test = "poetry run pytest tests -v"
 run = "python src/main.py"
+
+[tool.poetry.group.dev.dependencies]
+blue = "^0.9.1"
+isort = "^6.0.0"
+taskipy = "^1.14.1"
+pytest = "^8.3.4"
+requests-mock = "^1.12.1"
+
