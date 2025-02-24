@@ -26,18 +26,18 @@ if __name__ == '__main__':
     )
 
     try:
-        print('Executando sports_pipeline()...')
-        player_props.sports_pipeline(
-            database='oddsplayerprops', collection='sports'
-        )
+        # print('Executando sports_pipeline()...')
+        # player_props.sports_pipeline(
+        #     database='oddsplayerprops', collection='sports'
+        # )
 
-        print('Executando sports_competition_pipeline()...')
-        player_props.sports_competition_pipeline(
-            database='oddsplayerprops',
-            collection_input='sports',
-            sport_name='Basketball',
-            collection_output='sports_competition',
-        )
+        # print('Executando sports_competition_pipeline()...')
+        # player_props.sports_competition_pipeline(
+        #     database='oddsplayerprops',
+        #     collection_input='sports',
+        #     sport_name='Basketball',
+        #     collection_output='sports_competition',
+        # )
 
         print('Executando competition_schedules_pipeline()...')
         player_props.competition_schedules_pipeline(

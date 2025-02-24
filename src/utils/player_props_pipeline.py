@@ -31,6 +31,9 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
             sports = self.get_sports()
             if sports:
                 self.to_nosql(database, collection, sports)
+                print('Sports inserido com sucesso!')
+        else:
+            print('Sports já existe, pulando processamento...')
 
     def _fetch_and_store(
         self,
@@ -69,11 +72,7 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
         )
 
         for document in documents:
-            items = document.get(
-                key, []
-            )  # Aqui 'key' pode ser 'sports' ou 'competitions'
-
-            print(f'[DEBUG] Documento atual: {document}')
+            items = document.get(key, [])
 
             if not isinstance(items, list):
                 print(
@@ -89,6 +88,8 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
                 if 'name' in item and item['name'] == value:
                     item_ids = item['id']
                     break
+                else:
+                    item_ids.append(item['sport_event']['id'])
 
             print(f'[DEBUG] IDs coletados: {item_ids}')
 
@@ -102,7 +103,7 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
                     try:
                         data = fetch_function(event_id)
                         fetched_data.append(data)
-                        time.sleep(5)
+                        time.sleep(10)
                     except Exception as e:
                         print(
                             f'[ERROR] Erro ao buscar dados para {event_id}: {e}'
@@ -111,6 +112,7 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
                 fetched_data = fetch_function(item_ids)
 
             if fetched_data:
+
                 self.to_nosql(database, collection_output, fetched_data)
                 print(
                     f"[SUCCESS] Dados inseridos na coleção '{collection_output}' com sucesso!"
@@ -123,6 +125,8 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
             print(
                 f"[ERROR] Nenhum ID correspondente encontrado para '{value}' na coleção '{collection_input}'."
             )
+
+        time.sleep(10)
 
     def sports_competition_pipeline(
         self,
