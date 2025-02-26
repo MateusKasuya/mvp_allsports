@@ -1,10 +1,12 @@
 import time
 
 from src.utils.mongodb import MongoDBProcess
-from src.utils.request_player_props import RequestOddsPlayerProps
+from src.utils.request_odds import RequestOdds
 
 
-class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
+### Pontos de Melhoria: Mudar Competition Schedules para Daily Schedules.
+### Tornar codigo menos redundante nos event player props e markets
+class OddsPipeline(MongoDBProcess, RequestOdds):
     """
     Pipeline para buscar e armazenar informações esportivas no MongoDB.
     """
@@ -18,7 +20,7 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
         :param api_key: str - Chave da API.
         """
         MongoDBProcess.__init__(self, uri)
-        RequestOddsPlayerProps.__init__(self, access_level, api_key)
+        RequestOdds.__init__(self, access_level, api_key)
 
     def sports_pipeline(self, database: str, collection: str):
         """
@@ -34,6 +36,8 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
                 print('Sports inserido com sucesso!')
         else:
             print('Sports já existe, pulando processamento...')
+
+        time.sleep(10)
 
     def _fetch_and_store(
         self,
@@ -68,7 +72,10 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
         )
 
         item_ids = (
-            [] if collection_output == 'sport_event_player_props' else None
+            []
+            if collection_output
+            in {'sport_event_player_props', 'sport_event_markets'}
+            else None
         )
 
         for document in documents:
@@ -85,11 +92,26 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
                     print(f'[ERROR] Estrutura inesperada no item: {item}')
                     continue
 
-                if 'name' in item and item['name'] == value:
+                item_name = item.get('name')
+
+                if item_name == value:
+                    print(item_name)
+                    print(value)
+                    print('Item Name Encontrado')
                     item_ids = item['id']
-                    break
-                else:
-                    item_ids.append(item['sport_event']['id'])
+                    break  # Sai do loop ao encontrar o item correto
+
+                if item_name is None:  # Caso 'name' não exista no dicionário
+                    sport_event_id = item.get('sport_event', {}).get('id')
+                    if sport_event_id:
+                        if isinstance(
+                            item_ids, list
+                        ):  # Garante que item_ids é uma lista antes de appendar
+                            item_ids.append(sport_event_id)
+                        else:
+                            print(
+                                '[ERROR] item_ids não está configurado corretamente para armazenar IDs.'
+                            )
 
             print(f'[DEBUG] IDs coletados: {item_ids}')
 
@@ -189,7 +211,25 @@ class PlayerPropsPipeline(MongoDBProcess, RequestOddsPlayerProps):
             database,
             collection_input,
             'schedules',
-            None,
+            'None',
             collection_output,
             self.get_sport_event_player_props,
+        )
+
+    def sport_event_markets_pipeline(
+        self, database: str, collection_input: str, collection_output: str
+    ):
+        """
+        Obtém e armazena informações de eventos esportivos de jogos da NBA pré-match no MongoDB.
+        """
+        print(
+            f'[DEBUG] Chamando sport_event_markets_pipeline com {database}, {collection_input}, {collection_output}'
+        )
+        self._fetch_and_store(
+            database,
+            collection_input,
+            'schedules',
+            'None',
+            collection_output,
+            self.get_sport_event_markets,
         )
