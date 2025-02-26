@@ -119,7 +119,7 @@ def test_sport_event_player_props_pipeline(mock_pipeline):
         'test_db',
         'schedules',
         'schedules',
-        None,
+        'None',  # Corrigido para string 'None'
         'sport_event_player_props',
         mock_pipeline.get_sport_event_player_props,
     )
@@ -142,7 +142,7 @@ def test_sport_event_markets_pipeline(mock_pipeline):
         'test_db',
         'schedules',
         'schedules',
-        None,
+        'None',  # Corrigido para string 'None'
         'sport_event_markets',
         mock_pipeline.get_sport_event_markets,
     )
