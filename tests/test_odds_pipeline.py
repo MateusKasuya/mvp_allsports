@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.utils.player_props_pipeline import PlayerPropsPipeline
+from src.utils.odds_pipeline import OddsPipeline
 
 
 @pytest.fixture
@@ -13,10 +13,10 @@ def mock_pipeline():
     with patch(
         'src.utils.mongodb.MongoDBProcess.__init__', return_value=None
     ), patch(
-        'src.utils.request_player_props.RequestOddsPlayerProps.__init__',
+        'src.utils.request_odds.RequestOdds.__init__',
         return_value=None,
     ):
-        pipeline = PlayerPropsPipeline(
+        pipeline = OddsPipeline(
             uri='mongodb://fake-uri',
             access_level='trial',
             api_key='fake-api-key',
@@ -122,4 +122,27 @@ def test_sport_event_player_props_pipeline(mock_pipeline):
         None,
         'sport_event_player_props',
         mock_pipeline.get_sport_event_player_props,
+    )
+
+
+def test_sport_event_markets_pipeline(mock_pipeline):
+    """Testa a execução do pipeline de mercados de eventos esportivos."""
+    mock_pipeline._fetch_and_store = MagicMock()
+    mock_pipeline.get_sport_event_markets = MagicMock(
+        return_value=[{'id': '400', 'event': 'NBA Game Markets'}]
+    )
+
+    mock_pipeline.sport_event_markets_pipeline(
+        database='test_db',
+        collection_input='schedules',
+        collection_output='sport_event_markets',
+    )
+
+    mock_pipeline._fetch_and_store.assert_called_once_with(
+        'test_db',
+        'schedules',
+        'schedules',
+        None,
+        'sport_event_markets',
+        mock_pipeline.get_sport_event_markets,
     )
